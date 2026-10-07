@@ -1,0 +1,73 @@
+[
+  {
+    "path": "index.html",
+    "bytes": 12319,
+    "status": 200
+  },
+  {
+    "path": "assets/icon.svg",
+    "bytes": 296,
+    "status": 200
+  },
+  {
+    "path": "styles/legacy.css",
+    "bytes": 31660,
+    "status": 200
+  },
+  {
+    "path": "styles/cinema.css",
+    "bytes": 27925,
+    "status": 200
+  },
+  {
+    "path": "src/puzzles.js",
+    "bytes": 81899,
+    "status": 200
+  },
+  {
+    "path": "src/engine.js",
+    "bytes": 30199,
+    "status": 200
+  },
+  {
+    "path": "src/worlds.js",
+    "bytes": 31677,
+    "status": 200
+  },
+  {
+    "path": "src/topdown.js",
+    "bytes": 14939,
+    "status": 200
+  },
+  {
+    "path": "src/app.js",
+    "bytes": 43874,
+    "status": 200
+  },
+  {
+    "path": "assets/station.webp",
+    "bytes": 36412,
+    "status": 200
+  },
+  {
+    "path": "assets/ward.webp",
+    "bytes": 40992,
+    "status": 200
+  },
+  {
+    "path": "assets/archive.webp",
+    "bytes": 41826,
+    "status": 200
+  },
+  {
+    "path": "assets/power.webp",
+    "bytes": 34078,
+    "status": 200
+  },
+  {
+    "path": "assets/exit.webp",
+    "bytes": 39584,
+    "status": 200
+  }
+]
+PASS: all static references work below a repository-like URL prefix.

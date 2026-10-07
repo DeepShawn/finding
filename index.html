@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080d0e"><meta name="color-scheme" content="dark"><meta name="description" content="静默病院：五大独立场景、3D第一人称、2D俯视和经典调查三视角恐怖解谜游戏。无需登录，无外部依赖。"><title>静默病院 | THE SILENT WARD — 禁区重构</title><link rel="icon" href="assets/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles/legacy.css"><link rel="stylesheet" href="styles/cinema.css"></head><body data-view="3d" data-phase="title"><div id="heroArt" hidden></div>
+
+<div id="worldHost" aria-label="实时三维场景"><canvas id="worldCanvas"></canvas><canvas id="mapCanvas" hidden></canvas><div class="world-shade"></div></div>
+<div id="filmGrain" aria-hidden="true"></div>
+<section id="startScreen">
+<header class="masthead"><div class="brand"><div class="brand-mark" data-icon="cross"></div><div><div class="brand-name">静默病院</div><div class="brand-en">THE SILENT WARD</div></div></div><div class="menu-header-right"><span class="live-dot"></span><span id="engineStatus">正在接入监控信号</span><button class="text-button" data-shell="settings">设置 <span>↗</span></button></div></header>
+<main class="cinema-menu">
+<div class="hero-copy">
+<div class="case-tag">一份从未结案的午夜记录</div>
+<div class="edition-line">IMMERSIVE HORROR / RECONSTRUCTED EDITION</div>
+<h1>静默<span>病院</span><i aria-hidden="true">静默病院</i></h1>
+<p class="hero-subtitle">THE SILENT WARD</p>
+<p class="hero-desc">23:48。电话又响了。<br>五个房间，三份被抹去的证词。<br><strong>在午夜之前，找到离开的理由。</strong></p>
+<div class="view-label"><span>选择你的观察方式</span><span>01 — 03</span></div>
+<div class="entry-views" role="group" aria-label="选择视角">
+<button class="entry-view active" data-shell="view" data-view="3d" aria-pressed="true"><span class="view-number">01</span><svg viewBox="0 0 32 32"><path d="M4 9l12-6 12 6v15l-12 6-12-6Zm0 0 12 6 12-6M16 15v15"/></svg><strong>第一人称</strong><small>3D IMMERSIVE</small></button>
+<button class="entry-view" data-shell="view" data-view="2d" aria-pressed="false"><span class="view-number">02</span><svg viewBox="0 0 32 32"><path d="M4 5h24v23H4Zm0 9h10V5m0 9v14m0-8h14M21 5v8h7"/></svg><strong>俯视探索</strong><small>2D TOP-DOWN</small></button>
+<button class="entry-view" data-shell="view" data-view="investigate" aria-pressed="false"><span class="view-number">03</span><svg viewBox="0 0 32 32"><path d="M3 16s5-9 13-9 13 9 13 9-5 9-13 9S3 16 3 16Z"/><circle cx="16" cy="16" r="4"/></svg><strong>经典调查</strong><small>POINT & CLICK</small></button>
+</div>
+<div class="mode-select" role="group" aria-label="游戏模式"><button class="mode-card active" data-action="mode" data-mode="challenge" aria-pressed="true"><strong>午夜挑战</strong><span>12:00 / 限时逃离</span></button><button class="mode-card" data-action="mode" data-mode="explore" aria-pressed="false"><strong>沉浸探索</strong><span>∞ / 无时间限制</span></button></div>
+<div class="start-actions"><button class="btn primary" data-action="start"><span>进入病院</span><span class="start-arrow">⟶</span></button><button class="btn ghost" id="continueBtn" data-action="continue" hidden>继续调查</button></div>
+<div class="menu-links"><button data-action="help">操作指南</button><span>·</span><button data-shell="credits">制作档案</button><span>·</span><span>建议佩戴耳机</span></div>
+<div class="preferences" hidden><input id="startSound" data-pref="sound" type="checkbox" checked><input id="startScares" data-pref="scares" type="checkbox" checked></div>
+</div>
+<div class="surveillance-tag"><span class="live-dot"></span> LIVE FEED <span id="previewCamera">CAM 05</span><div class="surveillance-time">23<span>:</span>48</div><p id="previewDescription">这一次，不要回头。</p></div>
+<div class="scene-preview-label"><span id="previewName">05 / 离院长廊</span><span>实时场景预览</span></div>
+</main>
+<div class="sector-strip"><div class="sector-heading"><span>封闭区域</span><span>RESTRICTED SECTORS / 05</span><small>点击预览 · 正式游玩按线索解锁</small></div><div id="sectorCards" class="sector-cards"></div></div>
+<footer class="start-footer"><span>含压抑场景、人影与低沉音效。惊吓和镜头晃动均可关闭。</span><span>LOCAL SAVE <i></i> NO EXTERNAL REQUESTS <i></i> V2.0</span></footer>
+</section>
+
+<section id="gameScreen" hidden>
+  <header class="game-header">
+    <div class="brand"><div class="brand-mark" data-icon="cross"></div><div><div class="brand-name">静默病院</div><div class="brand-en">NIGHT SHIFT / 0117</div></div></div>
+    <div class="view-switch" role="group" aria-label="切换视角"><button class="active" data-shell="view" data-view="3d" title="1：第一人称">3D <span>第一人称</span></button><button data-shell="view" data-view="2d" title="2：俯视探索">2D <span>俯视</span></button><button data-shell="view" data-view="investigate" title="3：经典调查">调查 <span>解谜</span></button></div><div class="signal"><svg viewBox="0 0 135 30" aria-hidden="true"><path d="M0 15H25l4-4 4 4h10l4 6 6-19 5 26 5-13h14l5-5 5 5h48" fill="none" stroke="#a0b598" stroke-width="1"/></svg><div class="time-wrap"><div class="time-caption" id="timerCaption">距离封院<br>TIME REMAINING</div><div class="timer" id="timer" role="timer" aria-label="剩余时间">12:00</div></div></div>
+    <div class="header-actions"><button class="icon-btn" data-shell="settings" title="画面与舒适设置">设置</button><button class="icon-btn" data-action="sound" aria-label="切换声音" aria-pressed="true"><span data-icon="sound"></span><span class="button-label sound-label">声音开</span></button><button class="icon-btn" data-action="pause" aria-label="暂停游戏"><span data-icon="pause"></span><span class="button-label">暂停</span></button></div>
+  </header>
+  <main class="workspace">
+    <div class="scene-column">
+      <div class="location-head"><div><div class="eyebrow" id="roomEyebrow"></div><h1 class="location-title" id="roomTitle"></h1></div><div class="location-status"><div class="pill"><i class="dot"></i><span id="powerStatus">备用照明运行中</span></div><div class="mono small muted" style="font-size:9px;letter-spacing:1px;margin-top:7px">SECTOR 07 / NIGHT</div></div></div>
+      <div class="mobile-objective" id="mobileObjective"></div>
+      <nav class="room-nav" id="roomNav" aria-label="选择调查地点"></nav>
+      <div class="viewport" id="viewport" aria-label="可探索的病院场景">
+        <div id="sceneArt" style="position:absolute;inset:0" aria-hidden="true"></div><div class="flashlight" id="flashlight"></div>
+        <div class="camera-label"><i class="dot"></i><span id="camLabel">CAM 01 / LIVE</span></div><div class="scene-corner" id="sceneClock">23:48:00</div>
+        <div class="hotspots" id="hotspots"></div><div class="scene-bottom"><span>点击标记检查物品</span><span id="sceneCoords">EAST WING — 1F</span></div>
+      </div>
+      <div class="scene-caption"><span data-icon="quote"></span><span id="roomDescription"></span></div>
+      <div class="scene-toolbar"><div class="tools"><button class="icon-btn" data-action="flashlight" id="flashlightBtn" aria-pressed="true"><span data-icon="flashlight"></span><span>手电</span></button><button class="icon-btn" data-action="journal"><span data-icon="book"></span><span>线索本</span></button><button class="icon-btn" data-action="hint"><span data-icon="hint"></span><span>提示</span></button></div><button class="btn ghost small" data-action="help">操作说明 <span aria-hidden="true">↗</span></button></div>
+    </div>
+    <aside class="side-panel" aria-label="调查面板">
+      <div class="side-heading"><h2>调查进度</h2><span class="index" id="progressIndex">00 / 05</span></div>
+      <div class="objective-card"><div class="label">CURRENT OBJECTIVE</div><h3 id="objectiveTitle"></h3><p id="objectiveText"></p></div>
+      <div class="steps" id="steps"></div>
+      <div class="inventory-section"><div class="inventory-label"><span>随身物品</span><span id="inventoryCount" class="mono">00 ITEMS</span></div><div class="inventory" id="inventory"></div><p class="empty-tip">物品会自动收起。点击可检查用途。</p></div>
+      <button class="notebook-btn" data-action="journal"><span><strong>夜班线索本</strong><small id="notebookCount">尚未发现线索</small></span><span data-icon="arrow"></span></button>
+      <div class="evidence-counter"><span>遗失的证词</span><span class="evidence-dots" id="evidenceDots"><i></i><i></i><i></i></span></div>
+    </aside>
+  </main>
+  <footer class="game-footer"><span class="saved-indicator"><i class="dot"></i><span id="saveLabel">本地自动存档</span></span><span class="footer-shortcuts"><span class="kbd">J</span> 线索 &nbsp; <span class="kbd">H</span> 提示 &nbsp; <span class="kbd">ESC</span> 暂停</span><span>有些病历，从未真正结案。</span></footer>
+</section>
+<section id="endingScreen" hidden></section>
+<div id="modalBackdrop" class="modal-backdrop" hidden><section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><header class="modal-head"><div><div class="eyebrow" id="modalEyebrow">CASE FILE / 0117</div><h2 id="modalTitle"></h2></div><button class="modal-close" data-action="close" aria-label="关闭弹窗">×</button></header><div class="modal-body" id="modalBody"></div></section></div>
+<div class="apparition" id="apparition" aria-hidden="true"><svg viewBox="0 0 240 530"><defs><radialGradient id="ghostGlow"><stop stop-color="#81957d" stop-opacity=".2"/><stop offset="1" stop-color="#0b1110" stop-opacity="0"/></radialGradient></defs><ellipse cx="120" cy="270" rx="115" ry="250" fill="url(#ghostGlow)"/><path d="M63 512L68 247Q73 189 91 176Q65 149 77 107Q82 73 118 73Q155 73 161 106Q172 146 148 177Q179 189 182 247L192 512Z" fill="#030808"/><path d="M89 124L102 127M137 127L150 124" stroke="#92947c" stroke-opacity=".35" stroke-width="2"/></svg><p id="apparitionText"></p></div>
+<div id="toastRegion" role="status" aria-live="polite" aria-atomic="false"></div>
+
+<div id="worldOverlay" hidden>
+<div id="worldMarkers"></div><div class="crosshair" id="crosshair"><i></i><i></i></div>
+<div class="world-objective"><span class="eyebrow">当前目标 / OBJECTIVE</span><h3 id="worldObjective"></h3><p id="worldSubtext"></p><div class="world-progress"><span id="worldProgress"></span></div></div>
+<div class="world-location"><span id="worldSector"></span><h2 id="worldName"></h2><p id="worldMood"></p></div>
+<div class="interaction-prompt" id="interactionPrompt"><kbd>E</kbd><span>靠近光点，检查线索</span></div>
+<div class="world-help" id="worldHelp"><span>W A S D</span> 移动 <b>·</b> 拖动 / 点击锁定鼠标 <b>·</b> E 调查 <b>·</b> 1 / 2 / 3 切换视角</div>
+<div class="world-bottom-right"><span id="footstepLabel">没有人应该还在这里。</span><button data-shell="fullscreen" title="切换全屏">⛶</button></div>
+<div id="miniMapWrap"><canvas id="miniMap" width="180" height="160"></canvas><div>平面监控 · 当前位置</div></div>
+<div class="touch-controls" id="touchControls"><div id="joystick" aria-label="移动摇杆"><span id="joystickKnob"></span></div><button id="touchInteract" data-shell="interact">调查<br><small>E / USE</small></button></div>
+</div>
+<div id="transitionCurtain" aria-hidden="true"><span id="transitionNumber"></span><h2 id="transitionTitle"></h2><p id="transitionText"></p></div>
+<div id="signalWarning" hidden>监控信号不稳定，已切换至经典调查。<button data-shell="view" data-view="investigate">继续调查</button></div>
+<noscript><div class="no-script">本游戏需要启用 JavaScript。源代码中没有外部联网依赖。</div></noscript>
+<script src="src/puzzles.js" defer></script><script src="src/engine.js" defer></script><script src="src/worlds.js" defer></script><script src="src/topdown.js" defer></script><script src="src/app.js" defer></script></body></html>
