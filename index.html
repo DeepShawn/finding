@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080d0e"><meta name="color-scheme" content="dark"><meta name="description" content="静默病院：五大独立场景、3D第一人称、2D俯视和经典调查三视角恐怖解谜游戏。无需登录，无外部依赖。"><title>静默病院 | THE SILENT WARD — 禁区重构</title><link rel="icon" href="assets/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles/legacy.css"><link rel="stylesheet" href="styles/cinema.css"></head><body data-view="3d" data-phase="title"><div id="heroArt" hidden></div>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080d0e"><meta name="color-scheme" content="dark"><meta name="description" content="静默病院：五大章节、25个区域、高难度75个完成节点、随机种子、多层推理与跨区复核，三视角恐怖解谜游戏。无需登录，无外部依赖。"><title>静默病院 | THE SILENT WARD — 深层协议 / 五章高难战役</title><link rel="icon" href="assets/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles/legacy.css"><link rel="stylesheet" href="styles/cinema.css"><link rel="stylesheet" href="styles/campaign.css"><link rel="stylesheet" href="styles/depth.css"></head><body data-view="3d" data-phase="title"><div id="heroArt" hidden></div>
 
 <div id="worldHost" aria-label="实时三维场景"><canvas id="worldCanvas"></canvas><canvas id="mapCanvas" hidden></canvas><div class="world-shade"></div></div>
-<div id="filmGrain" aria-hidden="true"></div>
+<div id="weatherVeil" aria-hidden="true"></div><div id="filmGrain" aria-hidden="true"></div>
 <section id="startScreen">
 <header class="masthead"><div class="brand"><div class="brand-mark" data-icon="cross"></div><div><div class="brand-name">静默病院</div><div class="brand-en">THE SILENT WARD</div></div></div><div class="menu-header-right"><span class="live-dot"></span><span id="engineStatus">正在接入监控信号</span><button class="text-button" data-shell="settings">设置 <span>↗</span></button></div></header>
-<main class="cinema-menu">
+<nav id="chapterRail" class="chapter-rail" aria-label="选择大关卡"></nav><main class="cinema-menu">
 <div class="hero-copy">
 <div class="case-tag">一份从未结案的午夜记录</div>
-<div class="edition-line">IMMERSIVE HORROR / RECONSTRUCTED EDITION</div>
+<div class="edition-line">IMMERSIVE HORROR / THE SILENCE PROTOCOL / CAMPAIGN EDITION</div>
 <h1>静默<span>病院</span><i aria-hidden="true">静默病院</i></h1>
 <p class="hero-subtitle">THE SILENT WARD</p>
 <p class="hero-desc">23:48。电话又响了。<br>五个房间，三份被抹去的证词。<br><strong>在午夜之前，找到离开的理由。</strong></p>
@@ -20,14 +20,14 @@
 </div>
 <div class="mode-select" role="group" aria-label="游戏模式"><button class="mode-card active" data-action="mode" data-mode="challenge" aria-pressed="true"><strong>午夜挑战</strong><span>12:00 / 限时逃离</span></button><button class="mode-card" data-action="mode" data-mode="explore" aria-pressed="false"><strong>沉浸探索</strong><span>∞ / 无时间限制</span></button></div>
 <div class="start-actions"><button class="btn primary" data-action="start"><span>进入病院</span><span class="start-arrow">⟶</span></button><button class="btn ghost" id="continueBtn" data-action="continue" hidden>继续调查</button></div>
-<div class="menu-links"><button data-action="help">操作指南</button><span>·</span><button data-shell="credits">制作档案</button><span>·</span><span>建议佩戴耳机</span></div>
+<div class="menu-links"><button data-action="help">操作指南</button><span>·</span><button data-campaign="archive">战役档案</button><span>·</span><span>建议佩戴耳机</span></div>
 <div class="preferences" hidden><input id="startSound" data-pref="sound" type="checkbox" checked><input id="startScares" data-pref="scares" type="checkbox" checked></div>
 </div>
 <div class="surveillance-tag"><span class="live-dot"></span> LIVE FEED <span id="previewCamera">CAM 05</span><div class="surveillance-time">23<span>:</span>48</div><p id="previewDescription">这一次，不要回头。</p></div>
 <div class="scene-preview-label"><span id="previewName">05 / 离院长廊</span><span>实时场景预览</span></div>
 </main>
 <div class="sector-strip"><div class="sector-heading"><span>封闭区域</span><span>RESTRICTED SECTORS / 05</span><small>点击预览 · 正式游玩按线索解锁</small></div><div id="sectorCards" class="sector-cards"></div></div>
-<footer class="start-footer"><span>含压抑场景、人影与低沉音效。惊吓和镜头晃动均可关闭。</span><span>LOCAL SAVE <i></i> NO EXTERNAL REQUESTS <i></i> V2.0</span></footer>
+<footer class="start-footer"><span>含压抑场景、人影与低沉音效。惊吓和镜头晃动均可关闭。</span><span>LOCAL SAVE <i></i> NO EXTERNAL REQUESTS <i></i> V4.0 · DEEP PROTOCOL</span></footer>
 </section>
 
 <section id="gameScreen" hidden>
@@ -78,4 +78,4 @@
 <div id="transitionCurtain" aria-hidden="true"><span id="transitionNumber"></span><h2 id="transitionTitle"></h2><p id="transitionText"></p></div>
 <div id="signalWarning" hidden>监控信号不稳定，已切换至经典调查。<button data-shell="view" data-view="investigate">继续调查</button></div>
 <noscript><div class="no-script">本游戏需要启用 JavaScript。源代码中没有外部联网依赖。</div></noscript>
-<script src="src/puzzles.js" defer></script><script src="src/engine.js" defer></script><script src="src/worlds.js" defer></script><script src="src/topdown.js" defer></script><script src="src/app.js" defer></script></body></html>
+<script src="src/campaign-data.js" defer></script><script src="src/campaign-shots.js" defer></script><script src="src/depth-model.js" defer></script><script src="src/puzzles.js" defer></script><script src="src/engine.js" defer></script><script src="src/worlds.js" defer></script><script src="src/worlds-extra.js" defer></script><script src="src/campaign.js" defer></script><script src="src/depth.js" defer></script><script src="src/topdown.js" defer></script><script src="src/app.js" defer></script></body></html>

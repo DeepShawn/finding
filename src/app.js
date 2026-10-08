@@ -42,10 +42,10 @@
     } G.setPref('scares', G.prefs.scares); }
     function cameraToLook(pos, target) { player.pos = [...pos]; player.yaw = Math.atan2(target[0] - pos[0], -(target[2] - pos[2])); player.pitch = Math.atan2(target[1] - pos[1], Math.hypot(target[0] - pos[0], target[2] - pos[2])); }
     function preview(id) { if (G.phase !== 'title')
-        return; previewRoom = id; world = S.getWorld(id); currentRoom = id; const m = S.sceneMeta[id]; cameraToLook(world.preview, world.look); $('#previewName').textContent = `${m.index} / ${m.name}`; $('#previewCamera').textContent = `CAM ${m.index}`; $('#previewDescription').textContent = m.subtitle + '。'; $$('.sector-card').forEach(b => b.classList.toggle('selected', b.dataset.room === id)); if (!renderer)
+        return; previewRoom = id; world = S.getWorld(id); currentRoom = id; const m = S.sceneMeta[id]; cameraToLook(world.preview, world.look); $('#previewName').textContent = `${m.index} / ${m.name}`; $('#previewCamera').textContent = `CAM ${m.index}`; $('#previewDescription').textContent = m.subtitle.replace(/[。.!！]+$/, '') + '。'; $$('.sector-card').forEach(b => b.classList.toggle('selected', b.dataset.room === id)); if (!renderer)
         $('#worldHost').style.backgroundImage = `linear-gradient(#08111266,#081112aa),url("assets/${id}.webp")`; }
     function renderCards() {
-        $('#sectorCards').innerHTML = S.worldIds.map(id => { const m = S.sceneMeta[id]; return `<button class="sector-card ${id === previewRoom ? 'selected' : ''}" data-shell="preview" data-room="${id}" aria-label="预览${m.name}"><span class="sector-art">${G.makeScene(id)}</span><span class="sector-index">${m.index}</span><span class="sector-lock">↗</span><strong>${m.name}</strong><small>${m.short}</small></button>`; }).join('');
+        $('#sectorCards').innerHTML = (window.Campaign ? Campaign.roomIds() : S.worldIds).map(id => { const m = S.sceneMeta[id]; return `<button class="sector-card ${id === previewRoom ? 'selected' : ''}" data-shell="preview" data-room="${id}" aria-label="预览${m.name}"><span class="sector-art">${G.makeScene(id)}</span><span class="sector-index">${m.index}</span><span class="sector-lock">↗</span><strong>${m.name}</strong><small>${m.short}</small></button>`; }).join('');
         // Actual locally supplied captures are optional; SVG fallback is always present.
         for (const card of $$('.sector-card')) {
             const img = new Image();
@@ -109,7 +109,7 @@
         player.yaw = 0;
         player.pitch = -.01;
     } }
-    function roomTransition() { const m = S.sceneMeta[currentRoom]; $('#transitionNumber').textContent = `SECTOR ${m.index} / ${m.en}`; $('#transitionTitle').textContent = m.name; $('#transitionText').textContent = m.subtitle + '。'; $('#transitionCurtain').classList.add('active'); transitionUntil = performance.now() + (prefs.reduceMotion ? 180 : 760); setTimeout(() => $('#transitionCurtain').classList.remove('active'), prefs.reduceMotion ? 100 : 390); }
+    function roomTransition() { const m = S.sceneMeta[currentRoom]; $('#transitionNumber').textContent = `SECTOR ${m.index} / ${m.en}`; $('#transitionTitle').textContent = m.name; $('#transitionText').textContent = m.subtitle.replace(/[。.!！]+$/, '') + '。'; $('#transitionCurtain').classList.add('active'); transitionUntil = performance.now() + (prefs.reduceMotion ? 180 : 760); setTimeout(() => $('#transitionCurtain').classList.remove('active'), prefs.reduceMotion ? 100 : 390); }
     function enterRoom(id, { fresh = false } = {}) {
         if (!S.worldIds.includes(id))
             return;
@@ -139,7 +139,7 @@
         syncLayers();
     }
     function updateObjective() { if (!G.state)
-        return; const stage = G.currentStage(); $('#worldObjective').textContent = stage.title; $('#worldSubtext').textContent = stage.desc; $('#worldProgress').style.width = `${G.stages.filter(s => G.state.solved[s.key]).length / 5 * 100}%`; }
+        return; const stage = G.currentStage(); $('#worldObjective').textContent = stage.title; $('#worldSubtext').textContent = stage.desc; $('#worldProgress').style.width = `${(window.Depth?.enabled() ? Depth.count()/15 : G.stages.filter(s => G.state.solved[s.key]).length / G.stages.length) * 100}%`; }
     function syncPhase() {
         if (lastState !== G.state && G.phase === 'playing') {
             lastState = G.state;
@@ -160,7 +160,7 @@
             routeAction = null;
             exitPointer();
             if (G.phase === 'title') {
-                preview(previewRoom);
+                preview(window.Campaign?.roomIds()[0] || previewRoom);
                 $('#engineStatus').textContent = renderer ? '原生 3D 监控信号已接入' : '2D / 调查模式可用';
             }
             if (G.phase === 'ending') {
@@ -354,7 +354,7 @@
  <p class="settings-note">不使用快速频闪。建议先以较低设备音量游玩；感到不适时暂停。3D 模式需要支持 WebGL 2 的浏览器，失败时可用 2D 或经典调查。</p>
  <div class="btn-row">${inGame ? '<button class="btn ghost" data-shell="reset-position">重置当前位置</button>' : '<button class="btn ghost" data-shell="credits">制作档案</button>'}<button class="btn primary" data-action="${inGame ? 'resume' : 'close'}">${inGame ? '继续值班' : '保存设置'}</button></div>`, 'SETTINGS / 画面与舒适选项', false, inGame ? 'pause' : 'settings');
     }
-    function help() { G.openModal('夜班员操作手册', `<div class="journal-list"><article class="journal-entry"><h3>三种方式，同一段调查</h3><p>1：3D 第一人称；2：2D 俯视探索；3：经典调查。随时切换，物品、密码、机关与证词不会重置。</p></article><article class="journal-entry"><h3>3D 第一人称</h3><p>WASD 移动，Shift 加快脚步。按住鼠标拖动环顾，或点击场景锁定鼠标。走近光点后按 E、点击标记或触摸「调查」。Esc 释放鼠标并暂停。方向键也可前后行走、左右转向。</p></article><article class="journal-entry"><h3>2D 俯视探索</h3><p>点击空地自动寻路；点击线索，会自动走近并调查。也可使用 WASD 或手机摇杆移动。手动移动会取消自动路线。上方视角按钮随时切回经典调查，避免晕动。</p></article><article class="journal-entry"><h3>手机触屏</h3><p>左下摇杆移动，空白画面拖动环顾，右下按钮调查。2D 模式点击空地移动。横屏能看见更多环境，竖屏也可完成游戏。</p></article><article class="journal-entry"><h3>五大区域与机关</h3><p>底部地点栏可切换地点；病房与档案室需要先取得钥匙。每个房间有独立布局，门牌与光点指向可调查物品。所有重要文字都能在解谜弹窗中清晰阅读。</p></article><article class="journal-entry"><h3>计时、声音与存档</h3><p>午夜挑战为 12 分钟；错误提交扣 10 秒，新提示扣 20 秒。普通调查弹窗仍会计时，设置和暂停停止计时；切到后台自动暂停。沉浸探索不限时。存档仅保存在当前浏览器、当前站点。</p></article><article class="journal-entry"><h3>快捷键</h3><p>E 调查，J 线索本，B 物品，H 提示，F 手电，M 声音，Esc 暂停 / 关闭弹窗。设置内可调画质、亮度、灵敏度、人影惊吓和镜头晃动。门禁供电恢复后，仍需离院编号。</p></article></div><button class="btn primary wide" data-action="close">返回调查</button>`, 'FIELD MANUAL / 操作手册', true, 'help'); }
+    function help() { G.openModal('夜班员操作手册', `<div class="journal-list"><article class="journal-entry"><h3>三种方式，同一段调查</h3><p>1：3D 第一人称；2：2D 俯视探索；3：经典调查。随时切换，物品、密码、机关与证词不会重置。</p></article><article class="journal-entry"><h3>3D 第一人称</h3><p>WASD 移动，Shift 加快脚步。按住鼠标拖动环顾，或点击场景锁定鼠标。走近光点后按 E、点击标记或触摸「调查」。Esc 释放鼠标并暂停。方向键也可前后行走、左右转向。</p></article><article class="journal-entry"><h3>2D 俯视探索</h3><p>点击空地自动寻路；点击线索，会自动走近并调查。也可使用 WASD 或手机摇杆移动。手动移动会取消自动路线。上方视角按钮随时切回经典调查，避免晕动。</p></article><article class="journal-entry"><h3>手机触屏</h3><p>左下摇杆移动，空白画面拖动环顾，右下按钮调查。2D 模式点击空地移动。横屏能看见更多环境，竖屏也可完成游戏。</p></article><article class="journal-entry"><h3>五章二十五个区域</h3><p>主菜单可自由选择五个独立章节；底部地点栏切换本章区域。经典病院需要钥匙；高难度与扩展章节按原机关逐区开放。区域开放后可自由返回。每个房间有独立布局，门牌与光点指向可调查物品。所有重要文字都能在解谜弹窗中清晰阅读。</p></article><article class="journal-entry"><h3>深层协议与调查矩阵</h3><p>经典每章五道原机关。深渊与噩梦每章还需五道现场分析和五轮跨区回签：读现场记录，回上一区取残页并复核旧封印，再到当前终端分析。五个原锁全部解除后，回首区领取终核纸带。调查矩阵显示缺失记录、十五个节点及自动保存的推理草稿。</p></article><article class="journal-entry"><h3>解谜强度与计时</h3><p>经典限时 12 / 18 / 22 / 24 / 26 分钟，错误 −10 秒、新提示 −20 秒。深渊限时为经典 3 倍，错误 −25 秒、提示 −40 秒；噩梦为 3.5 倍向上取整分钟，错误 −45 秒、提示 −60 秒，每章最多六次新提示且没有直接答案。沉浸探索保留全部选定强度但不倒计时。普通资料、谜题和矩阵仍会计时；设置、暂停和后台会暂停。</p></article><article class="journal-entry"><h3>声音与存档</h3><p>声音、人影惊吓和镜头晃动可独立关闭。五章存档互相独立，同一章节只保存一轮未完成调查；战役档案可导入导出备份。旧 v3 存档按经典规则继续。种子、强度、未提交输入和推理草稿随本轮保存。</p></article><article class="journal-entry"><h3>快捷键</h3><p>E 调查，J 线索本，B 物品，H 提示，F 手电，M 声音，Esc 暂停 / 关闭弹窗。设置内可调画质、亮度、灵敏度、人影惊吓和镜头晃动。三种视角共享本章进度；五章各携三份证词撤离后，战役档案解锁总终章。</p></article></div><button class="btn primary wide" data-action="close">返回调查</button>`, 'FIELD MANUAL / 操作手册', true, 'help'); }
     function credits() { G.openModal('禁区重构 · 制作档案', `<p style="letter-spacing:1px;line-height:2">静默病院不是一段等待播放的影像。<br>每一盏灯、每一扇门，都在你的浏览器中实时绘制。</p><div class="credits-grid"><div><strong>05</strong><small>独立环境 / 独立平面布局</small></div><div><strong>03</strong><small>共享进度的探索视角</small></div><div><strong>00</strong><small>外部运行依赖 / 跟踪请求</small></div><div><strong>03</strong><small>证词与不同结局</small></div></div><p class="settings-note">三维：原生 WebGL 2、合批几何、阴影贴图、程序化材质、雾效与胶片后处理。俯视：独立 Canvas 2D 绘制与 A* 寻路。调查：保留原版 SVG 场景与谜题系统。音效由 Web Audio 合成。源码可作为纯静态网站部署。</p><button class="btn primary wide" data-action="close">关闭档案</button>`, 'THE SILENT WARD / VERSION 2.0', false, 'credits'); }
     const ambient = { ready: false, ctx: null, noise: null, filter: null, mix: null, hum: null, lastRoom: null,
         init() { if (this.ready || !G.audio.ready)
@@ -394,7 +394,7 @@
             console.warn('Ambient audio unavailable', e);
         } },
         room(id) { if (!this.ready)
-            return; this.lastRoom = id; const config = { station: [380, 57, .20], ward: [1500, 42, .27], archive: [620, 39, .18], power: [190, 50, .44], exit: [780, 47, .22] }[id], t = this.ctx.currentTime; this.filter.frequency.setTargetAtTime(config[0], t, 1); this.hum.frequency.setTargetAtTime(config[1], t, .6); this.mix.gain.setTargetAtTime(config[2], t, .7); },
+            return; this.lastRoom = id; const config = { station: [380, 57, .20], ward: [1500, 42, .27], archive: [620, 39, .18], power: [190, 50, .44], exit: [780, 47, .22] }[id] || S.sceneMeta[id]?.ambient || [500, 40, .22], t = this.ctx.currentTime; this.filter.frequency.setTargetAtTime(config[0], t, 1); this.hum.frequency.setTargetAtTime(config[1], t, .6); this.mix.gain.setTargetAtTime(config[2], t, .7); },
         event(kind = 'step', pan = 0) { if (!this.ready || !G.prefs.sound || G.paused)
             return; try {
             const c = this.ctx, t = c.currentTime, g = c.createGain(), filter = c.createBiquadFilter(), p = c.createStereoPanner();
@@ -505,7 +505,7 @@
         player.pos[1] = 1.65 + (prefs.reduceMotion ? 0 : Math.sin(time * 1.45) * .007 + (moving ? Math.sin(walkTime * 8) * .025 : 0));
         if (G.prefs.scares && G.state.elapsed > nextScare) {
             nextScare = G.state.elapsed + 38 + Math.random() * 28;
-            const lines = frightLines[currentRoom];
+            const lines = frightLines[currentRoom] || S.sceneMeta[currentRoom]?.scare || [S.sceneMeta[currentRoom].mood];
             triggerScare(lines[Math.floor(Math.random() * lines.length)]);
         }
         if (now - lastSavePosition > 3500) {
@@ -699,10 +699,10 @@
     $('#gameScreen .tools').insertAdjacentHTML('beforeend', '<button class="icon-btn" data-shell="bag" title="B：随身物品">' + G.icon('key') + '<span>物品</span></button>');
     renderCards();
     applyPrefs();
-    preview('exit');
+    preview(window.Campaign?.roomIds()[0] || 'exit');
     setView(view, false);
     $('#engineStatus').textContent = renderer ? '原生 3D 监控信号已接入' : '2D / 调查模式可用';
     requestAnimationFrame(frameLoop);
     /** Read-only diagnostics plus normal public controls; useful to contributors and smoke tests. */
-    S.app = { get view() { return view; }, get room() { return currentRoom; }, get player() { return player; }, get world() { return world; }, get renderer() { return renderer; }, get frame() { return frame; }, get route() { return route; }, get renderError() { return renderError; }, setView, preview, resetPosition, canStand, pathTo, interact, savePosition, enterRoom, triggerScare, get prefs() { return prefs; }, get topdown() { return topdown; } };
+    S.app = { renderCards, get view() { return view; }, get room() { return currentRoom; }, get player() { return player; }, get world() { return world; }, get renderer() { return renderer; }, get frame() { return frame; }, get route() { return route; }, get renderError() { return renderError; }, setView, preview, resetPosition, canStand, pathTo, interact, savePosition, enterRoom, triggerScare, get prefs() { return prefs; }, get topdown() { return topdown; } };
 })();

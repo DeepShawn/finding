@@ -92,7 +92,15 @@
             g.lineWidth = .035;
             g.strokeStyle = '#b9c4a151';
             g.strokeRect(-w / 2, -d / 2, w, d);
-            if (kind === 'bed') {
+            if (['tank','orb','bell','telescope','clock','bench','track','gate'].includes(kind)) {
+                g.fillStyle=world.accent+'45';
+                if(['tank','orb','bell'].includes(kind)){g.beginPath();g.ellipse(0,0,w*.43,d*.43,0,0,Math.PI*2);g.fill();g.stroke();g.beginPath();g.ellipse(0,0,w*.28,d*.28,0,0,Math.PI*2);g.stroke();}
+                else if(kind==='telescope'){g.rotate(-.4);g.fillRect(-.23,-d*.43,.46,d*.86);g.strokeRect(-.23,-d*.43,.46,d*.86);}
+                else if(kind==='track'){g.strokeStyle=world.accent+'99';for(const x of [-.43,.43]){g.beginPath();g.moveTo(x,-d/2);g.lineTo(x,d/2);g.stroke();}}
+                else if(kind==='bench'){g.fillRect(-w/2+.07,-d/2+.07,w-.14,d*.5);g.strokeRect(-w/2,-d/2,w,.12);}
+                else {g.fillRect(-w*.3,-d*.3,w*.6,d*.6);}
+            }
+            else if (kind === 'bed') {
                 g.fillStyle = '#b8c3ac';
                 g.fillRect(-w / 2 + .10, -d / 2 + .1, w - .2, d - .23);
                 g.fillStyle = '#d2d5bd';

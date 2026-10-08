@@ -29,7 +29,7 @@ class QuietHandler(SimpleHTTPRequestHandler):
 def main():
     refs = References()
     refs.feed((ROOT / 'index.html').read_text(encoding='utf-8'))
-    refs.paths += [f'assets/{x}.webp' for x in ['station', 'ward', 'archive', 'power', 'exit']]
+    refs.paths += [str(x.relative_to(ROOT)) for x in sorted((ROOT / 'assets').glob('*.webp'))]
     server = ThreadingHTTPServer(('127.0.0.1', 0), partial(QuietHandler, directory=str(ROOT.parent)))
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()

@@ -30,6 +30,7 @@ function fillIcons(root = document) { $$('[data-icon]', root).forEach(e => { e.i
 function svgSymbol(name, x, y, size = 24, color = '#b5c4a4') { return `<g transform="translate(${x},${y}) scale(${size / 24})" fill="none" stroke="${color}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</g>`; }
 /* Procedural, resolution-independent environmental illustrations. */
 function makeScene(room, hero = false) {
+    if (window.CampaignArt && window.CampaignArt.has(room)) return window.CampaignArt.scene(room);
     const p = (typeof state !== 'undefined' && state && state.solved.power) || false;
     const id = hero ? 'hero' : `scene-${room}`;
     let s = `<svg class="scene-svg" viewBox="0 0 1000 620" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${id}-wall" x2="0" y2="1"><stop stop-color="#2b3d3b"/><stop offset="1" stop-color="#142727"/></linearGradient><linearGradient id="${id}-floor" x2="0" y2="1"><stop stop-color="#20312e"/><stop offset="1" stop-color="#0b1718"/></linearGradient><linearGradient id="${id}-door" x2="1" y2=".2"><stop stop-color="#1b302d"/><stop offset=".5" stop-color="#3c5249"/><stop offset="1" stop-color="#1b2d2c"/></linearGradient><radialGradient id="${id}-light"><stop stop-color="#b7c79c" stop-opacity="${p ? .25 : .14}"/><stop offset="1" stop-color="#a6b893" stop-opacity="0"/></radialGradient><radialGradient id="${id}-dark"><stop offset=".5" stop-color="#030908" stop-opacity="0"/><stop offset="1" stop-color="#030908" stop-opacity=".74"/></radialGradient><pattern id="${id}-tile" width="90" height="65" patternUnits="userSpaceOnUse"><rect width="90" height="65" fill="none" stroke="#668073" stroke-opacity=".13"/></pattern><filter id="${id}-blur"><feGaussianBlur stdDeviation="7"/></filter></defs>`;
@@ -87,7 +88,7 @@ function makeScene(room, hero = false) {
     s += `<ellipse cx="500" cy="235" rx="450" ry="300" fill="url(#${id}-light)"/><rect width="1000" height="620" fill="url(#${id}-dark)"/><path d="M0 616H1000" stroke="#788570" stroke-opacity=".12"/></svg>`;
     return s;
 }
-const STORAGE = 'silent-ward-save-v1';
+const STORAGE = 'silent-ward-active-v3';
 const PREFS = 'silent-ward-prefs-v1';
 let storageOK = true;
 function readLocal(k) { try {
@@ -105,7 +106,7 @@ catch (e) {
     return false;
 } }
 let preferences = { sound: true, scares: true, ...(readLocal(PREFS) || {}) };
-let saved = readLocal(STORAGE);
+let saved = readLocal(STORAGE) || readLocal('silent-ward-save-v1');
 if (saved && (saved.version !== 1 || !saved.solved || !Array.isArray(saved.inventory) || !Number.isFinite(saved.remaining)))
     saved = null;
 let state = null, phase = 'title', paused = false, selectedMode = 'challenge', flashlightOn = true;
@@ -145,8 +146,8 @@ const STAGES = [
 const INITIAL_ROT = [1, 1, 0, 0, 1, 1, 3, 1, 1];
 const WIRE_TYPES = ['I', 'I', 'L', 'L', 'I', 'L', 'L', 'I', 'I'];
 // Directions: N=0 E=1 S=2 W=3. A straight starts E/W, a corner N/E.
-function newState(mode) { return { version: 1, mode, room: 'station', remaining: 720, elapsed: 0, inventory: [], notes: [], evidence: [], solved: { drawer: false, wardDoor: false, locker: false, archiveDoor: false, safe: false, fuse: false, power: false, exit: false }, circuits: [...INITIAL_ROT], archiveOrder: [], hintLevels: {}, stats: { wrong: 0, hints: 0 }, warned90: false }; }
-function currentStage() { return STAGES.find(v => !state.solved[v.key]) || { key: 'done', title: '推开大门，离开这里', desc: '门禁已经解锁。收齐三份证词还能揭开另一种结局。', hints: ['点击正门场景中央的「离院大门」，推开门完成逃生。'] }; }
+function newState(mode) { if (window.Campaign && Campaign.selected !== 'hospital') return Campaign.createState(mode); return { version: 1, chapter: 'hospital', mode, room: 'station', remaining: 720, elapsed: 0, inventory: [], notes: [], evidence: [], solved: { drawer: false, wardDoor: false, locker: false, archiveDoor: false, safe: false, fuse: false, power: false, exit: false }, circuits: [...INITIAL_ROT], archiveOrder: [], hintLevels: {}, stats: { wrong: 0, hints: 0 }, warned90: false }; }
+function currentStage() { if (window.Depth?.enabled()) return Depth.objective(); if (window.Campaign && state?.chapter !== 'hospital' && STAGES.every(v => state.solved[v.key])) return Campaign.doneStage(); return STAGES.find(v => !state.solved[v.key]) || { key: 'done', title: '推开大门，离开这里', desc: '门禁已经解锁。收齐三份证词还能揭开另一种结局。', hints: ['点击正门场景中央的「离院大门」，推开门完成逃生。'] }; }
 function completed() { return STAGES.filter(v => state.solved[v.key]).length; }
 function has(id) { return !!state?.inventory.includes(id); }
 function addItem(id) { if (!has(id)) {
@@ -167,8 +168,8 @@ function addEvidence(id) { addNote(id); if (!state.evidence.includes(id)) {
     saveGame();
 } }
 function saveGame() { if (!state || phase !== 'playing')
-    return; writeLocal(STORAGE, state); saved = JSON.parse(JSON.stringify(state)); $('#saveLabel').textContent = storageOK ? '进度已自动保存' : '本地存储不可用 · 请勿关闭页面'; }
-function clearSave() { try {
+    return; writeLocal(STORAGE, state); saved = JSON.parse(JSON.stringify(state)); window.Campaign?.save(state); $('#saveLabel').textContent = storageOK ? '进度已自动保存' : '本地存储不可用 · 请勿关闭页面'; }
+function clearSave() { window.Campaign?.clearRun(); try {
     localStorage.removeItem(STORAGE);
 }
 catch (e) { } saved = null; }
@@ -265,17 +266,17 @@ function renderPanel() {
     $('#notebookCount').textContent = state.notes.length ? `已收录 ${String(state.notes.length).padStart(2, '0')} 条线索` : '尚未发现线索';
     $('#evidenceDots').innerHTML = [0, 1, 2].map(i => `<i class="${i < state.evidence.length ? 'found' : ''}"></i>`).join('');
     $('#evidenceDots').setAttribute('aria-label', `已找到${state.evidence.length}份证词，共3份`);
-    $('#powerStatus').textContent = state.solved.power ? '门禁供电已恢复' : '备用照明运行中';
+    $('#powerStatus').textContent = state.chapter && state.chapter !== 'hospital' ? `${window.Campaign?.current().name} · 已完成 ${count}/5` : state.solved.power ? '门禁供电已恢复' : '备用照明运行中';
 }
-function isSeen(id) { const map = { drawer: 'drawer', locker: 'locker', safe: 'safe', fuse: 'fuse', circuit: 'power', gate: 'exit', door: 'exit' }; return map[id] ? state.solved[map[id]] : state.notes.includes(id); }
+function isSeen(id) { if (id.startsWith('cx_')) return window.Campaign?.seen(id) || false; const map = { drawer: 'drawer', locker: 'locker', safe: 'safe', fuse: 'fuse', circuit: 'power', gate: 'exit', door: 'exit' }; return map[id] ? state.solved[map[id]] : state.notes.includes(id); }
 function renderScene() {
     const room = ROOMS[state.room];
     $('#roomTitle').textContent = room.name;
     $('#roomEyebrow').textContent = `${room.cam} / ${room.en}`;
     $('#camLabel').textContent = `CAM ${room.cam} / LIVE`;
     $('#roomDescription').textContent = room.desc;
-    $('#roomNav').innerHTML = Object.entries(ROOMS).map(([id, r]) => `<button class="room-tab ${id === state.room ? 'active' : ''}" data-action="go" data-room="${id}" ${id === state.room ? 'aria-current="location"' : ''}><span class="n">${r.cam}</span><span>${r.name}</span>${((id === 'ward' && !state.solved.wardDoor) || (id === 'archive' && !state.solved.archiveDoor)) ? icon('lock', 'lock') : ''}</button>`).join('');
-    $('#sceneArt').innerHTML = makeScene(state.room);
+    $('#roomNav').innerHTML = Object.entries(ROOMS).filter(([id]) => !window.Campaign || Campaign.roomIds().includes(id)).map(([id, r]) => `<button class="room-tab ${id === state.room ? 'active' : ''}" data-action="go" data-room="${id}" ${id === state.room ? 'aria-current="location"' : ''}><span class="n">${r.cam}</span><span>${r.name}</span>${((id === 'ward' && !state.solved.wardDoor) || (id === 'archive' && !state.solved.archiveDoor) || (window.Campaign && !Campaign.canEnter(id))) ? icon('lock', 'lock') : ''}</button>`).join('');
+    $('#sceneArt').innerHTML = makeScene(state.room); document.body.dataset.chapter = state.chapter || 'hospital'; $('#sceneCoords').textContent = window.Campaign?.current().en || 'EAST WING — 1F';
     $('#hotspots').innerHTML = room.hotspots.map(([id, label, x, y]) => `<button class="hotspot ${isSeen(id) ? 'done' : ''}" data-action="inspect" data-id="${id}" style="left:${x}%;top:${y}%" aria-label="检查${label}"><span class="target">${isSeen(id) ? '✓' : '+'}</span><span>${label}</span></button>`).join('');
     renderPanel();
     fillIcons($('#gameScreen'));
@@ -283,11 +284,13 @@ function renderScene() {
     updateTimer();
     window.dispatchEvent(new CustomEvent('ward:scene'));
 }
-function startGame(mode, resume = false) { closeModal(true); state = resume ? JSON.parse(JSON.stringify(saved)) : newState(mode); if (!state)
-    return; phase = 'playing'; paused = false; lastTick = performance.now(); lastSave = lastTick; lastTimerText = ''; $('#startScreen').hidden = true; $('#endingScreen').hidden = true; $('#gameScreen').hidden = false; renderScene(); audio.init(); audio.sync(); saveGame(); window.scrollTo(0, 0); toast(resume ? '已载入值班记录。计时从离开处继续。' : '值班开始。先检查护士站的日历与交班须知。'); }
+function startGame(mode, resume = false) { window.Campaign?.prepare(resume); closeModal(true); state = resume ? JSON.parse(JSON.stringify(saved)) : newState(mode); if (!state)
+    return; window.Depth?.prepareState(state, resume); phase = 'playing'; paused = false; lastTick = performance.now(); lastSave = lastTick; lastTimerText = ''; $('#startScreen').hidden = true; $('#endingScreen').hidden = true; $('#gameScreen').hidden = false; renderScene(); audio.init(); audio.sync(); saveGame(); window.scrollTo(0, 0); toast(resume ? '已载入值班记录。计时从离开处继续。' : (window.Campaign?.intro() || '值班开始。先检查护士站的日历与交班须知。')); }
 function goRoom(id) {
-    if (!ROOMS[id] || phase !== 'playing' || paused)
+    if (!ROOMS[id] || phase !== 'playing' || paused || (window.Campaign && !Campaign.roomIds().includes(id)))
         return;
+    if (window.Depth?.enabled() && !Depth.canEnter(id)) { Depth.locked(id); return; }
+    if (window.Campaign && !Campaign.canEnter(id)) { Campaign.locked(id); return; }
     if (id === 'ward' && !state.solved.wardDoor) {
         openLockedRoom('ward', 'wardKey', '07 号病房', 'wardDoor');
         return;
@@ -318,6 +321,7 @@ function doc(title, content, tag = 'WARD / INTERNAL', bottom = 'SW–0117 · 本
 function noteFooter() { return `<p class="note-added">${icon('check')}线索已记入线索本，可随时回看。</p><button class="btn ghost wide" data-action="close">继续调查</button>`; }
 function flow(names, paper = false) { return `<div class="symbol-flow ${paper ? 'paper-symbols' : ''}" aria-label="${names.map(n => ({ moon: '月亮', eye: '眼睛', hand: '手掌', sun: '太阳' }[n])).join('，')}">${names.map((n, i) => (i ? '<span>→</span>' : '') + icon(n)).join('')}</div>`; }
 function inspect(id) {
+    if (id.startsWith('cx_')) { window.Campaign?.inspect(id); return; }
     audio.click();
     switch (id) {
         case 'shift':
@@ -404,7 +408,7 @@ function inspect(id) {
     saveGame();
 }
 const CODES = { drawer: { title: '值班抽屉', code: '1103', desc: '一把四位密码锁。旁边贴着褪色的字：「按当班日期登记」。', eyebrow: 'LOCK 01 / 日期机关' }, locker: { title: '病房柜锁', code: '2479', desc: '四个输入位。床尾记录上的图案，应该就是输入的顺序。', eyebrow: 'LOCK 02 / 图案机关' }, exit: { title: '离院门禁', code: '4297', desc: '电源稳定。请输入离院凭证所对应的四位数字。', eyebrow: 'LOCK 05 / 离院认证' } };
-function openKeypad(type) { const cfg = CODES[type]; openModal(cfg.title, `<p class="puzzle-intro">${cfg.desc}</p><form id="codeForm" data-type="${type}"><div class="keypad-wrap"><label class="small muted" for="codeInput" style="display:block;margin-bottom:8px">四位数字密码</label><input class="code-display" id="codeInput" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="4" pattern="[0-9]{4}" placeholder="----" aria-label="四位数字密码"><div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '清空', 0, '⌫'].map(n => `<button type="button" class="${typeof n === 'string' ? 'utility' : ''}" data-action="digit" data-digit="${n}" aria-label="${n === '⌫' ? '删除一位' : n}">${n}</button>`).join('')}</div><button class="btn primary wide" type="submit">${type === 'exit' ? '确认离院编号' : '确认密码'} ${icon('arrow')}</button><div class="feedback" id="puzzleFeedback" role="status">${state.mode === 'challenge' ? '错误提交扣除 10 秒；位数不足不扣时。' : '探索模式不扣时间，可以反复尝试。'}</div></div></form><div class="rule"></div><button class="btn ghost wide small" data-action="journal">查看线索本 ${icon('book')}</button>`, cfg.eyebrow, false, 'keypad'); }
+function openKeypad(type) { const cfg = CODES[type]; openModal(cfg.title, `<p class="puzzle-intro">${cfg.desc}</p><form id="codeForm" data-type="${type}"><div class="keypad-wrap"><label class="small muted" for="codeInput" style="display:block;margin-bottom:8px">四位数字密码</label><input class="code-display" id="codeInput" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="4" pattern="[0-9]{4}" placeholder="----" aria-label="四位数字密码"><div class="keypad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, '清空', 0, '⌫'].map(n => `<button type="button" class="${typeof n === 'string' ? 'utility' : ''}" data-action="digit" data-digit="${n}" aria-label="${n === '⌫' ? '删除一位' : n}">${n}</button>`).join('')}</div><button class="btn primary wide" type="submit">${type === 'exit' ? '确认离院编号' : '确认密码'} ${icon('arrow')}</button><div class="feedback" id="puzzleFeedback" role="status">${state.mode === 'challenge' ? `错误提交扣除 ${window.Depth?.wrongCost()||10} 秒；位数不足不扣时。` : '探索模式不扣时间，可以反复尝试。'}</div></div></form><div class="rule"></div><button class="btn ghost wide small" data-action="journal">查看线索本 ${icon('book')}</button>`, cfg.eyebrow, false, 'keypad'); }
 function digit(value) { const input = $('#codeInput'); if (!input)
     return; if (value === '清空')
     input.value = '';
@@ -419,12 +423,12 @@ function feedback(text, error = false) { const e = $('#puzzleFeedback'); if (!e)
     void m.offsetWidth;
     m.classList.add('shake');
 } }
-function penalty() { state.stats.wrong++; if (state.mode === 'challenge')
+function penalty() { if (window.Depth?.enabled()) return Depth.penalty(); state.stats.wrong++; if (state.mode === 'challenge')
     state.remaining = Math.max(0, state.remaining - 10); audio.error(); updateTimer(); saveGame(); if (state.mode === 'challenge' && state.remaining <= 0) {
     finish(false);
     return false;
 } return true; }
-function submitCode(type) {
+function submitCode(type) { if (window.Depth && !Depth.allowBase(type)) return;
     const value = $('#codeInput')?.value.replace(/\D/g, '') || '';
     if (value.length !== 4) {
         feedback('请输入完整的四位数字。', true);
@@ -432,7 +436,7 @@ function submitCode(type) {
     }
     if (value !== CODES[type].code) {
         if (penalty()) {
-            feedback(`锁芯没有转动。顺序可能不对。${state.mode === 'challenge' ? ' −10 秒' : ''}`, true);
+            feedback(`锁芯没有转动。顺序可能不对。${state.mode === 'challenge' ? ' −' + (window.Depth?.wrongCost() || 10) + ' 秒' : ''}`, true);
             $('#codeInput').value = '';
         }
         return;
@@ -468,7 +472,7 @@ function openItem(id) {
 }
 const FILES = { blood: { label: '采血', id: 'B–17' }, lights: { label: '熄灯', id: 'D–09' }, medicine: { label: '给药', id: 'A–04' }, rounds: { label: '巡房', id: 'C–22' } };
 const FILE_ORDER = ['medicine', 'blood', 'rounds', 'lights'];
-function archiveBody() { return `<p>点击下方记录，按事件的先后顺序填入四个位置。点击已填的记录可撤回。</p><div class="file-slots">${[0, 1, 2, 3].map((_, i) => { const f = state.archiveOrder[i]; return `<button class="file-slot ${f ? 'filled' : ''}" data-action="remove-file" data-index="${i}" aria-label="${f ? '移除' + FILES[f].label : '第' + (i + 1) + '个位置'}"><small>0${i + 1}</small><span>${f ? FILES[f].label : '待归档'}</span></button>`; }).join('')}</div><div class="file-cards">${Object.entries(FILES).map(([id, f]) => `<button class="file-card ${state.archiveOrder.includes(id) ? 'used' : ''}" data-action="add-file" data-id="${id}" ${state.archiveOrder.includes(id) ? 'disabled' : ''}><small>RECORD</small><b>${f.label}</b><small>${f.id}</small></button>`).join('')}</div><button class="btn primary wide" data-action="check-archive">确认归档 ${icon('arrow')}</button><div class="feedback" id="puzzleFeedback" role="status">${state.mode === 'challenge' ? '顺序错误扣除 10 秒。' : '选择错误不会扣除时间。'}</div><div class="btn-row"><button class="btn small ghost" data-action="reset-archive">清空排列</button><button class="btn small ghost" data-action="inspect" data-id="rules">查看归档须知</button></div>`; }
+function archiveBody() { return `<p>点击下方记录，按事件的先后顺序填入四个位置。点击已填的记录可撤回。</p><div class="file-slots">${[0, 1, 2, 3].map((_, i) => { const f = state.archiveOrder[i]; return `<button class="file-slot ${f ? 'filled' : ''}" data-action="remove-file" data-index="${i}" aria-label="${f ? '移除' + FILES[f].label : '第' + (i + 1) + '个位置'}"><small>0${i + 1}</small><span>${f ? FILES[f].label : '待归档'}</span></button>`; }).join('')}</div><div class="file-cards">${Object.entries(FILES).map(([id, f]) => `<button class="file-card ${state.archiveOrder.includes(id) ? 'used' : ''}" data-action="add-file" data-id="${id}" ${state.archiveOrder.includes(id) ? 'disabled' : ''}><small>RECORD</small><b>${f.label}</b><small>${f.id}</small></button>`).join('')}</div><button class="btn primary wide" data-action="check-archive">确认归档 ${icon('arrow')}</button><div class="feedback" id="puzzleFeedback" role="status">${state.mode === 'challenge' ? '顺序错误扣除 ' + (window.Depth?.wrongCost() || 10) + ' 秒。' : '选择错误不会扣除时间。'}</div><div class="btn-row"><button class="btn small ghost" data-action="reset-archive">清空排列</button><button class="btn small ghost" data-action="inspect" data-id="rules">查看归档须知</button></div>`; }
 function openArchive() { openModal('封存档案柜', archiveBody(), 'LOCK 03 / 夜间归档', false, 'archive'); }
 function renderArchive() { const focused = document.activeElement; const action = focused?.dataset.action, id = focused?.dataset.id; $('#modalBody').innerHTML = archiveBody(); if (action && id) {
     $(`[data-action="${action}"][data-id="${id}"]`)?.focus({ preventScroll: true });
@@ -476,12 +480,12 @@ function renderArchive() { const focused = document.activeElement; const action 
 function addFile(id) { if (state.archiveOrder.length >= 4 || state.archiveOrder.includes(id) || !FILES[id])
     return; state.archiveOrder.push(id); audio.click(); renderArchive(); saveGame(); }
 function removeFile(i) { state.archiveOrder.splice(i, 1); renderArchive(); saveGame(); }
-function checkArchive() { if (state.archiveOrder.length < 4) {
+function checkArchive() { if (window.Depth && !Depth.allowBase("safe")) return; if (state.archiveOrder.length < 4) {
     feedback('请先放入全部四份记录。', true);
     return;
 } if (state.archiveOrder.join() !== FILE_ORDER.join()) {
     if (penalty())
-        feedback(`归档顺序不正确。${state.mode === 'challenge' ? ' −10 秒' : ''}`, true);
+        feedback(`归档顺序不正确。${state.mode === 'challenge' ? ' −' + (window.Depth?.wrongCost() || 10) + ' 秒' : ''}`, true);
     return;
 } state.solved.safe = true; addItem('fuse'); addItem('permit'); addNote('permit'); audio.chime(); openModal('封存档案已开启', `<div style="display:flex;gap:15px;justify-content:center"><div class="item-hero" style="margin:4px 0 20px">${icon('fuse')}</div><div class="item-hero" style="margin:4px 0 20px">${icon('paper')}</div></div><p>档案柜里藏着一枚<strong>备用熔断器</strong>和一张<strong>离院凭证</strong>。<br>凭证背面，是一组新的图案顺序。它已记入线索本。</p><div class="btn-row"><button class="btn ghost" data-action="item" data-id="permit">查看凭证</button><button class="btn primary" data-action="go" data-room="power">前往配电室</button></div>`, 'PUZZLE 03 / 05 · 已完成'); renderScene(); saveGame(); }
 function openFuse() { if (state.solved.fuse) {
@@ -519,12 +523,12 @@ function wireNetwork() { const connected = new Set(), queue = []; let broken = f
 } return { connected, success: out && !broken && connected.size === 9 }; }
 function wireSVG(i, on) { const d = WIRE_TYPES[i] === 'I' ? 'M0 50H100' : 'M50 0V50H100'; return `<svg viewBox="0 0 100 100" aria-hidden="true" style="transform:rotate(${state.circuits[i] * 90}deg)"><path d="${d}" stroke="#06130d" stroke-width="16" fill="none"/><path d="${d}" stroke="${on ? '#c0d99e' : '#778b68'}" stroke-width="7" fill="none"/><circle cx="50" cy="50" r="7" fill="${on ? '#d2e3aa' : '#849474'}"/><circle cx="50" cy="50" r="2" fill="#293d23"/></svg>`; }
 function renderCircuit() { const network = wireNetwork(); $('#circuitGrid').innerHTML = state.circuits.map((rot, i) => `<button class="wire-cell ${network.connected.has(i) ? 'connected' : ''}" data-action="rotate" data-index="${i}" aria-label="导线 ${i + 1}，顺时针旋转九十度" data-index-label="${i + 1}">${wireSVG(i, network.connected.has(i))}<span style="position:absolute;left:6px;top:3px;font:9px var(--mono);color:#93a880">${i + 1}</span></button>`).join(''); }
-function openCircuit() { openModal('修复应急线路', `<p>点击任一导线可顺时针旋转 90°。将左上角输入端接到右下角输出端，所有接头都要接上。</p><div class="circuit-shell"><div class="circuit-labels"><span>IN ↓ 左上输入</span><span>右下输出 ↓ OUT</span></div><div class="circuit-grid" id="circuitGrid"></div><p class="circuit-legend">浅绿色导线 = 已与输入端相连<br>从左侧进入 1 号格，最后从 9 号格右侧离开。</p></div><button class="btn primary wide" data-action="check-circuit">合闸检测 ${icon('arrow')}</button><div class="feedback" id="puzzleFeedback" role="status">${state.mode === 'challenge' ? '线路错误扣除 10 秒。旋转导线不扣时。' : '连通后按「合闸检测」，可以反复尝试。'}</div><div class="btn-row"><button class="btn small ghost" data-action="reset-circuit">重置线路</button><button class="btn small ghost" data-action="hint">请求提示</button></div>`, 'LOCK 04 / 应急供电', false, 'circuit'); renderCircuit(); }
+function openCircuit() { openModal('修复应急线路', `<p>点击任一导线可顺时针旋转 90°。将左上角输入端接到右下角输出端，所有接头都要接上。</p><div class="circuit-shell"><div class="circuit-labels"><span>IN ↓ 左上输入</span><span>右下输出 ↓ OUT</span></div><div class="circuit-grid" id="circuitGrid"></div><p class="circuit-legend">浅绿色导线 = 已与输入端相连<br>从左侧进入 1 号格，最后从 9 号格右侧离开。</p></div><button class="btn primary wide" data-action="check-circuit">合闸检测 ${icon('arrow')}</button><div class="feedback" id="puzzleFeedback" role="status">${state.mode === 'challenge' ? '线路错误扣除 ' + (window.Depth?.wrongCost() || 10) + ' 秒。旋转导线不扣时。' : '连通后按「合闸检测」，可以反复尝试。'}</div><div class="btn-row"><button class="btn small ghost" data-action="reset-circuit">重置线路</button><button class="btn small ghost" data-action="hint">请求提示</button></div>`, 'LOCK 04 / 应急供电', false, 'circuit'); renderCircuit(); }
 function rotateWire(i) { if (state.solved.power || i < 0 || i > 8)
     return; state.circuits[i] = (state.circuits[i] + 1) % 4; audio.click(); renderCircuit(); $(`[data-action="rotate"][data-index="${i}"]`)?.focus({ preventScroll: true }); saveGame(); }
-function checkCircuit() { if (!wireNetwork().success) {
+function checkCircuit() { if (window.Depth && !Depth.allowBase("power")) return; if (!wireNetwork().success) {
     if (penalty())
-        feedback(`仍有断开的接头，请检查线路。${state.mode === 'challenge' ? ' −10 秒' : ''}`, true);
+        feedback(`仍有断开的接头，请检查线路。${state.mode === 'challenge' ? ' −' + (window.Depth?.wrongCost() || 10) + ' 秒' : ''}`, true);
     return;
 } state.solved.power = true; audio.chime(); renderScene(); saveGame(); openModal('门禁电源已恢复', `<div class="item-hero">${icon('check')}</div><p>电压表的指针终于抬起。走廊尽头，「安全出口」的指示灯亮了。<br>离院凭证上的图案，应该能打开最后一道锁。</p><div class="btn-row"><button class="btn ghost" data-action="item" data-id="permit">查看凭证</button><button class="btn primary" data-action="go" data-room="exit">前往正门</button></div>`, 'PUZZLE 04 / 05 · 已完成'); setTimeout(() => scare('这一次，带他们一起离开。'), 800); }
 function openExitDoor() { if (state.solved.exit) {
@@ -535,16 +539,16 @@ else {
 } }
 function openJournal() { if (!state)
     return; openModal('夜班线索本', `<p>已自动记录 ${state.notes.length} 条线索。${state.mode === 'challenge' ? '查阅时倒计时仍会继续。' : '探索模式可以慢慢查阅。'}</p><div class="journal-list">${state.notes.length ? state.notes.map((id, i) => { const n = NOTES[id]; return `<article class="journal-entry"><div class="entry-id">${String(i + 1).padStart(2, '0')} / ${n.location}</div><h3>${n.title}</h3><p>${n.text}</p></article>`; }).join('') : '<article class="journal-entry"><h3>还没有线索</h3><p>点击场景中的标记调查物品，重要文字会自动收录到这里。</p></article>'}</div><div class="btn-row"><button class="btn ghost" data-action="close">返回调查</button><button class="btn primary" data-action="hint">当前机关提示</button></div>`, 'INVESTIGATION LOG / 按发现顺序', true, 'journal'); }
-function openHint() { const stage = currentStage(), level = state.hintLevels[stage.key] || 0; openModal('需要一点方向', `<p>当前目标：<strong>${stage.title}</strong></p><p class="hint-notice">提示逐级展开：方向 → 推理 → 直接答案。${state.mode === 'challenge' ? '每次展开新的提示扣除 20 秒；重读已展开的提示不扣时。' : '探索模式的提示不扣时间。'}</p>${stage.hints.slice(0, level).map((h, i) => `<div class="hint-box"><strong>HINT ${String(i + 1).padStart(2, '0')}</strong><p>${h}</p></div>`).join('')}${level === 0 ? '<div class="hint-box"><p>先确认已经检查了当前房间的所有标记。答案往往藏在两条线索之间。</p></div>' : ''}<div class="btn-row"><button class="btn ghost" data-action="close">再想一想</button>${level < stage.hints.length ? `<button class="btn primary" data-action="reveal-hint">展开提示 ${level + 1}${state.mode === 'challenge' ? '（−20 秒）' : ''}</button>` : '<button class="btn primary" data-action="close">返回解谜</button>'}</div>`, 'HELP / 不必盲目试错', false, 'hint'); }
-function revealHint() { const stage = currentStage(), level = state.hintLevels[stage.key] || 0; if (level >= stage.hints.length)
+function openHint() { if (window.Depth?.enabled()) { Depth.openHint(); return; } const stage = currentStage(), level = state.hintLevels[stage.key] || 0; openModal('需要一点方向', `<p>当前目标：<strong>${stage.title}</strong></p><p class="hint-notice">提示逐级展开：方向 → 推理 → 直接答案。${state.mode === 'challenge' ? '每次展开新的提示扣除 20 秒；重读已展开的提示不扣时。' : '探索模式的提示不扣时间。'}</p>${stage.hints.slice(0, level).map((h, i) => `<div class="hint-box"><strong>HINT ${String(i + 1).padStart(2, '0')}</strong><p>${h}</p></div>`).join('')}${level === 0 ? '<div class="hint-box"><p>先确认已经检查了当前房间的所有标记。答案往往藏在两条线索之间。</p></div>' : ''}<div class="btn-row"><button class="btn ghost" data-action="close">再想一想</button>${level < stage.hints.length ? `<button class="btn primary" data-action="reveal-hint">展开提示 ${level + 1}${state.mode === 'challenge' ? '（−20 秒）' : ''}</button>` : '<button class="btn primary" data-action="close">返回解谜</button>'}</div>`, 'HELP / 不必盲目试错', false, 'hint'); }
+function revealHint() { if (window.Depth?.enabled()) { Depth.revealHint(); return; } const stage = currentStage(), level = state.hintLevels[stage.key] || 0; if (level >= stage.hints.length)
     return; state.hintLevels[stage.key] = level + 1; state.stats.hints++; if (state.mode === 'challenge')
     state.remaining = Math.max(0, state.remaining - 20); updateTimer(); saveGame(); if (state.mode === 'challenge' && state.remaining <= 0) {
     finish(false);
     return;
 } openHint(); }
-function showHelp() { const inGame = phase === 'playing'; openModal('值班员操作手册', `<div class="journal-list"><article class="journal-entry"><h3>探索与物品</h3><p>点击场景中的「＋」标记检查物品，使用上方地点栏切换房间。钥匙、熔断器会自动放入随身物品；到目标位置后点击「使用」按钮。</p></article><article class="journal-entry"><h3>密码、归档与线路</h3><p>密码可以用屏幕数字键或键盘输入。档案记录按先后顺序点击排列；导线每次点击旋转 90°。重要线索会自动记入线索本。</p></article><article class="journal-entry"><h3>两种模式</h3><p>限时挑战共 12 分钟：错误提交扣 10 秒，每条新提示扣 20 秒。普通线索及谜题弹窗不会暂停计时。沉浸探索没有时限。暂停和切到后台都会停止计时。</p></article><article class="journal-entry"><h3>证词与存档</h3><p>寻找旧电话、破镜子和旧合影中的三份证词，可以解锁另一种逃生结局。操作后会自动保存到本地浏览器；清理浏览器数据、换浏览器或移动本地文件后，存档可能不可用。</p></article><article class="journal-entry"><h3>键盘与舒适设置</h3><p>J：线索本；H：提示；F：手电；M：声音；Esc：关闭弹窗或暂停。手机直接点击对应按钮。声音和轻度人影惊吓均可关闭。</p></article></div><div class="btn-row"><button class="btn primary" data-action="close">${inGame ? '返回值班' : '知道了'}</button></div>`, 'HOW TO PLAY / 操作手册', true, 'help'); }
+function showHelp() { const inGame = phase === 'playing'; openModal('值班员操作手册', `<div class="journal-list"><article class="journal-entry"><h3>探索与物品</h3><p>点击场景中的「＋」标记检查物品，使用上方地点栏切换房间。钥匙、熔断器会自动放入随身物品；到目标位置后点击「使用」按钮。</p></article><article class="journal-entry"><h3>密码、归档与线路</h3><p>密码可以用屏幕数字键或键盘输入。新增章节另有声纹复现、信号灯翻转、称重、旋钮、联动表盘和路径规划；机关内都附有操作规则。档案记录按先后顺序点击排列；导线每次点击旋转 90°。重要线索会自动记入线索本。</p></article><article class="journal-entry"><h3>解谜强度与计时模式</h3><p>经典模式限时为 12 / 18 / 22 / 24 / 26 分钟，错误 −10 秒、提示 −20 秒。深渊时限为经典的 3 倍，错误 −25 秒、提示 −40 秒；噩梦时限为经典的 3.5 倍向上取整分钟，错误 −45 秒、提示 −60 秒。高难度每章有 15 个节点；噩梦每章最多 6 次新提示，不提供直接答案。普通线索及谜题弹窗不会暂停计时。沉浸探索没有时限。暂停和切到后台都会停止计时。</p></article><article class="journal-entry"><h3>证词与存档</h3><p>每章三份证词，五章共十五份。集齐一章的三份证词并撤离可记录完整证据；五章全部达成后，在战役档案查看总终章。各章存档互不覆盖。操作后会自动保存到本地浏览器；清理浏览器数据、换浏览器或移动本地文件后，存档可能不可用。</p></article><article class="journal-entry"><h3>键盘与舒适设置</h3><p>J：线索本；H：提示；F：手电；M：声音；Esc：关闭弹窗或暂停。手机直接点击对应按钮。声音和轻度人影惊吓均可关闭。</p></article></div><div class="btn-row"><button class="btn primary" data-action="close">${inGame ? '返回值班' : '知道了'}</button></div>`, 'HOW TO PLAY / 操作手册', true, 'help'); }
 function showPause(auto = false) { if (phase !== 'playing')
-    return; paused = true; saveGame(); audio.sync(); clearTimeout(scareTimeout); $('#apparition').classList.remove('visible'); openModal('值班暂停', `<p>${auto ? '页面切到后台，游戏已自动暂停。返回后点击继续。' : '计时已经停止。这里暂时是安全的。'}</p><div class="pause-stats"><span>${state.mode === 'challenge' ? '剩余 ' + formatTime(state.remaining) : '探索 ' + formatTime(state.elapsed)}</span><span>机关 ${completed()}/5</span></div><div class="pause-setting"><span>低沉环境音与操作音</span><label class="check"><input type="checkbox" data-pref="sound" ${preferences.sound ? 'checked' : ''}>环境音效</label></div><div class="pause-setting"><span>短暂人影，不含频闪</span><label class="check"><input type="checkbox" data-pref="scares" ${preferences.scares ? 'checked' : ''}>人影惊吓</label></div><div class="btn-row"><button class="btn ghost" data-action="title">保存并返回首页</button><button class="btn primary" data-action="resume">继续值班 ${icon('play')}</button></div>`, 'PAUSED / 计时已停止', false, 'pause'); }
+    return; paused = true; saveGame(); audio.sync(); clearTimeout(scareTimeout); $('#apparition').classList.remove('visible'); openModal('值班暂停', `<p>${auto ? '页面切到后台，游戏已自动暂停。返回后点击继续。' : '计时已经停止。这里暂时是安全的。'}</p><div class="pause-stats"><span>${state.mode === 'challenge' ? '剩余 ' + formatTime(state.remaining) : '探索 ' + formatTime(state.elapsed)}</span><span>节点 ${window.Depth?.enabled() ? Depth.count()+"/15" : completed()+"/5"}</span></div><div class="pause-setting"><span>低沉环境音与操作音</span><label class="check"><input type="checkbox" data-pref="sound" ${preferences.sound ? 'checked' : ''}>环境音效</label></div><div class="pause-setting"><span>短暂人影，不含频闪</span><label class="check"><input type="checkbox" data-pref="scares" ${preferences.scares ? 'checked' : ''}>人影惊吓</label></div><div class="btn-row"><button class="btn ghost" data-action="title">保存并返回首页</button><button class="btn primary" data-action="resume">继续值班 ${icon('play')}</button></div>`, 'PAUSED / 计时已停止', false, 'pause'); }
 function resumeGame() { if (phase !== 'playing')
     return; paused = false; lastTick = performance.now(); closeModal(true); audio.resume(); }
 function returnTitle() { if (phase === 'playing')
@@ -553,7 +557,7 @@ function updateTimer() { if (!state)
     return; const text = state.mode === 'challenge' ? formatTime(state.remaining) : formatTime(state.elapsed); if (text !== lastTimerText) {
     $('#timer').textContent = text;
     lastTimerText = text;
-} $('#timer').classList.toggle('urgent', state.mode === 'challenge' && state.remaining <= 90); $('#timer').setAttribute('aria-label', (state.mode === 'challenge' ? '剩余时间 ' : '探索用时 ') + text); $('#timerCaption').innerHTML = state.mode === 'challenge' ? '距离封院<br>TIME REMAINING' : '无时限探索<br>EXPLORATION'; const t = 23 * 3600 + 48 * 60 + Math.floor(state.mode === 'challenge' ? 720 - state.remaining : state.elapsed); const day = t % 86400; $('#sceneClock').textContent = [Math.floor(day / 3600), Math.floor(day % 3600 / 60), day % 60].map(x => String(x).padStart(2, '0')).join(':'); }
+} $('#timer').classList.toggle('urgent', state.mode === 'challenge' && state.remaining <= 90); $('#timer').setAttribute('aria-label', (state.mode === 'challenge' ? '剩余时间 ' : '探索用时 ') + text); $('#timerCaption').innerHTML = state.mode === 'challenge' ? '本章倒计时<br>TIME REMAINING' : '无时限探索<br>EXPLORATION'; const duration = state.duration || (window.Campaign?.current().minutes || 12) * 60; const t = 86400 - duration + Math.floor(state.mode === 'challenge' ? duration - state.remaining : state.elapsed); const day = t % 86400; $('#sceneClock').textContent = [Math.floor(day / 3600), Math.floor(day % 3600 / 60), day % 60].map(x => String(x).padStart(2, '0')).join(':'); }
 function tick() { const now = performance.now(), dt = (now - lastTick) / 1000; lastTick = now; if (phase !== 'playing' || paused || !state)
     return; state.elapsed += dt; if (state.mode === 'challenge')
     state.remaining = Math.max(0, state.remaining - dt); updateTimer(); if (state.mode === 'challenge' && state.remaining <= 0) {
@@ -561,13 +565,14 @@ function tick() { const now = performance.now(), dt = (now - lastTick) / 1000; l
     return;
 } if (state.mode === 'challenge' && state.remaining <= 90 && !state.warned90) {
     state.warned90 = true;
-    toast('距离封院不足 90 秒。正门的指示灯正在等你。');
+    toast('本章剩余不足 90 秒。检查当前目标与已经记录的线索。');
     audio.tone(220, .6, 'sine', .035, 110);
 } if (now - lastSave > 5000) {
     saveGame();
     lastSave = now;
 } }
 function finish(escaped = true) {
+    if (window.Campaign) { Campaign.finish(escaped); return; }
     if (phase !== 'playing' || (escaped && !state.solved.exit))
         return;
     phase = 'ending';
@@ -587,7 +592,7 @@ function finish(escaped = true) {
     $('#endingScreen').innerHTML = `<div class="ending-card"><div class="ending-mark">${icon(escaped ? 'exit' : 'clock')}</div><div class="eyebrow">${en}</div><h1>${title}</h1><p>${text}</p><div class="ending-stats"><div><b>${formatTime(state.elapsed)}</b><small>实际调查用时</small></div><div><b>${completed()} / 5</b><small>完成机关</small></div><div><b>${state.evidence.length} / 3</b><small>找回证词</small></div></div><p class="small">${state.mode === 'challenge' ? '限时挑战' : '沉浸探索'} · 错误提交 ${state.stats.wrong} 次 · 使用提示 ${state.stats.hints} 条</p><div class="ending-actions"><button class="btn primary" data-action="title">重新值班 ${icon('arrow')}</button><button class="btn ghost" data-action="walkthrough">查看完整路线</button></div><p class="ending-footer">THE SILENT WARD / CASE CLOSED</p></div>`;
     window.scrollTo(0, 0);
 }
-function walkthrough() { openModal('完整解谜路线', `<div class="journal-list"><article class="journal-entry"><h3>01 · 护士站</h3><p>当班日期 11 月 03 日，按月、日各两位得到 1103。打开抽屉拿病房钥匙。检查旧电话，收集证词 01。</p></article><article class="journal-entry"><h3>02 · 07 号病房</h3><p>用钥匙开门。墙上对应：月亮 2、眼睛 4、手掌 7、太阳 9。按床尾记录得到柜锁密码 2479，拿档案室钥匙。检查镜子，收集证词 02。</p></article><article class="journal-entry"><h3>03 · 档案室</h3><p>用钥匙开门。依次归档：给药、采血、巡房、熄灯。获得备用熔断器和离院凭证。检查旧合影，收集证词 03。</p></article><article class="journal-entry"><h3>04 · 配电室</h3><p>安装熔断器。将线路排成蛇形：1 → 2 → 3 ↓ 6 ← 5 ← 4 ↓ 7 → 8 → 9。重置线路后，1、2、4、5、7、8、9 各点 1 次，3、6 各点 2 次，然后合闸。</p></article><article class="journal-entry"><h3>05 · 正门</h3><p>凭证顺序是眼睛、月亮、太阳、手掌，门禁码 4297。认证通过后推开大门。三份证词齐全为「让静默结束」，未齐为「逃出生天」；挑战模式超时为「午夜档案」。</p></article></div><div class="btn-row"><button class="btn primary" data-action="close">关闭路线</button></div>`, 'SPOILERS / 全部答案', true, 'walkthrough'); }
+function walkthrough() { if (window.Campaign && Campaign.current().id !== 'hospital') { Campaign.walkthrough(); return; } openModal('完整解谜路线', `<div class="journal-list"><article class="journal-entry"><h3>01 · 护士站</h3><p>当班日期 11 月 03 日，按月、日各两位得到 1103。打开抽屉拿病房钥匙。检查旧电话，收集证词 01。</p></article><article class="journal-entry"><h3>02 · 07 号病房</h3><p>用钥匙开门。墙上对应：月亮 2、眼睛 4、手掌 7、太阳 9。按床尾记录得到柜锁密码 2479，拿档案室钥匙。检查镜子，收集证词 02。</p></article><article class="journal-entry"><h3>03 · 档案室</h3><p>用钥匙开门。依次归档：给药、采血、巡房、熄灯。获得备用熔断器和离院凭证。检查旧合影，收集证词 03。</p></article><article class="journal-entry"><h3>04 · 配电室</h3><p>安装熔断器。将线路排成蛇形：1 → 2 → 3 ↓ 6 ← 5 ← 4 ↓ 7 → 8 → 9。重置线路后，1、2、4、5、7、8、9 各点 1 次，3、6 各点 2 次，然后合闸。</p></article><article class="journal-entry"><h3>05 · 正门</h3><p>凭证顺序是眼睛、月亮、太阳、手掌，门禁码 4297。认证通过后推开大门。三份证词齐全为「让静默结束」，未齐为「逃出生天」；挑战模式超时为「午夜档案」。</p></article></div><div class="btn-row"><button class="btn primary" data-action="close">关闭路线</button></div>`, 'SPOILERS / 全部答案', true, 'walkthrough'); }
 /* Central event delegation keeps controls usable after any scene redraw. */
 document.addEventListener('click', e => {
     const b = e.target.closest('[data-action]');

@@ -485,4 +485,7 @@
     S.getWorld = id => cache[id] || (cache[id] = factories[id]());
     S.worldIds = Object.keys(factories);
     S.getWorldCache = () => cache;
+    S.WorldKit = { palettes, makeBase, sign, ceilingLight, wallLamp, door, counter, table, chair, paper, phone, clock, bed, ivStand, shelf, locker, ghost,
+        register(id, factory) { factories[id] = factory; if (!S.worldIds.includes(id)) S.worldIds.push(id); }
+    };
 })();

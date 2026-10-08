@@ -21,7 +21,7 @@ def build() -> Path:
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     images = {
         name: data_uri(ROOT / "assets" / f"{name}.webp", "image/webp")
-        for name in ("station", "ward", "archive", "power", "exit")
+        for name in (p.stem for p in sorted((ROOT / "assets").glob("*.webp")))
     }
     html = html.replace("assets/icon.svg", data_uri(ROOT / "assets/icon.svg", "image/svg+xml"))
     html = re.sub(
@@ -32,16 +32,16 @@ def build() -> Path:
 
     def inline_script(match: re.Match[str]) -> str:
         code = (ROOT / match[1]).read_text(encoding="utf-8")
-        if match[1].endswith("app.js"):
+        if match[1].endswith("app.js") or match[1].endswith("worlds-extra.js"):
             # Works with either compact or formatted source.
             code = re.sub(r'img\.src\s*=\s*`assets/\$\{card\.dataset\.room\}\.webp`',
                           'img.src = INLINE_SCENE_IMAGES[card.dataset.room]', code)
             code = code.replace('url("assets/${id}.webp")', 'url("${INLINE_SCENE_IMAGES[id]}")')
-            code = "const INLINE_SCENE_IMAGES = " + json.dumps(images) + ";\n" + code
+            code = "window.INLINE_SCENE_IMAGES = " + json.dumps(images) + ";\n" + code if match[1].endswith("worlds-extra.js") else code
         return "<script>\n" + code.replace("</script", "<\\/script") + "\n</script>"
 
     html = re.sub(r'<script src="([^"]+)" defer></script>', inline_script, html)
-    output = ROOT / "dist" / "silent-ward-v2-standalone.html"
+    output = ROOT / "dist" / "silent-ward-v4-standalone.html"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(html, encoding="utf-8")
     return output
